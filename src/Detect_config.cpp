@@ -10,12 +10,6 @@ Detect::Detect()
     NMirrors = 0;
     Mirror_Area = 0.;
     std::fill(Pos, Pos+3, 0);
-    std::fill(X_PixMM, X_PixMM + LACT_MAXPIXELS, 0.);
-    std::fill(Y_PixMM, Y_PixMM + LACT_MAXPIXELS, 0.);
-    std::fill(R_PixMM, R_PixMM + LACT_MAXPIXELS, 0.);
-    std::fill(Pixel_Shape, Pixel_Shape + LACT_MAXPIXELS, -1);
-    std::fill(Pixel_Size, Pixel_Size + LACT_MAXPIXELS, 0.);
-
 
 }
 
@@ -37,10 +31,14 @@ void Detect::Reset()
 }
 void Detect::InitWrite()
 {
+    X_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    Y_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    R_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    Pixel_Size = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
     detect_tree = new TTree("config_tree", "config_data");
     detect_tree->Branch("Ntel", &Ntel, "Ntel/I");
     detect_tree->Branch("Tel_id", &Tel_id, "Tel_id/I");
-    detect_tree->Branch("Tel_pos", Pos, "Tel_pos/F");
+    detect_tree->Branch("Tel_pos", Pos, "Tel_pos[3]/F");
     detect_tree->Branch("Focal_length", &Focal_length, "Focal_length/F");
     detect_tree->Branch("Effective_focal_length", &Effective_focal_length, "Effective_focal_length/F");
     detect_tree->Branch("Npix", &Npix, "Npix/I");
@@ -50,13 +48,17 @@ void Detect::InitWrite()
     detect_tree->Branch("Y_Pix", Y_PixMM, "Y_Pix[Npix]/F");
    // detect_tree->Branch("R_Pix", R_PixMM, "Y_Pix[Npix]/F");
     detect_tree->Branch("Pixel_Shape", Pixel_Shape, "Pixel_Shape[Npix]/I");
-    detect_tree->Branch("Pixel_Size", Pixel_Size, "Pixel_Size/F");
+    detect_tree->Branch("Pixel_Size", Pixel_Size, "Pixel_Size[Npix]/F");
     detect_tree->Branch("NMirrors", &NMirrors, "NMirrors/I");
     detect_tree->Branch("Mirror_Area", &Mirror_Area, "Mirror_Area/F");
 
 }
 void Detect::InitRead(TTree *t)
 {
+    X_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    Y_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    R_PixMM = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
+    Pixel_Size = (float*) malloc(LACT_MAXPIXELS * sizeof(float));
     detect_tree = t;
     detect_tree->SetBranchAddress("Ntel", &Ntel);
     detect_tree->SetBranchAddress("Tel_id", &Tel_id);

@@ -15,7 +15,7 @@ public:
     double width[LACT_MAXTEL];
     double length[LACT_MAXTEL];
     double alpha[LACT_MAXTEL];
-    double image_x[LACT_MAXTEL];
+    double image_x[LACT_MAXTEL];  // All are stored in Rad;
     double image_y[LACT_MAXTEL];
     double size[LACT_MAXTEL];
     double focal_length[LACT_MAXTEL];
@@ -61,9 +61,9 @@ public:
     {
         return image_x[itel];
     }
-    void SetTelImageY(int itel, double imagex)
+    void SetTelImageY(int itel, double imagey)
     {
-        image_x[itel] = imagex;
+        image_y[itel] = imagey;
     }
     double GetTelImageY(int itel)
     {
@@ -96,6 +96,7 @@ public:
 
     void ComputeTelRp(double tel_pos[][3], TMcData* );
     void ConvertToRad(double* focal_length);
+    void clear();
     ClassDef(TImage_Parameter, 1)
 };
 

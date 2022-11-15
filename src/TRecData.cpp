@@ -1,22 +1,42 @@
 #include "TRecData.h"
 #include "rec_tools.h"
 
-TRecData::TRecData(LACTree* DSTTree) : TMcData(DSTTree)
+TRecData::TRecData() 
 {
+    primary_id = -1;
+    energy = 0.;
+    std::fill(core_pos,core_pos + 2, 0.);
+    runnumber = 0;
+    eventnumber = 0;
+    memset(Tel_direction, 0, 2*LACT_MAXTEL*sizeof(double));
+    memset(Tel_position, 0, 3*LACT_MAXTEL*sizeof(double));
     std::fill(rec_core, rec_core + 2, 0.);
     std::fill(rec_direction, rec_direction + 2, 0.);
     rec_energy = 0.;
+}
 
+void TRecData::Reset()
+{
+    TMcData::Reset();
+    std::fill(rec_core, rec_core + 2, 0.);
+    std::fill(rec_direction, rec_direction + 2, 0.);
+    rec_energy = 0.;
+}
+
+void TRecData::GetData(LACTree* DSTTree)  
+{
+    TMcData::GetData(DSTTree);
 }
 void TRecData::InitWrite()
 {
-    rec_tree->Branch("true_direction", true_direction);
-    rec_tree->Branch("rec_direction", rec_direction);
-    rec_tree->Branch("true_energy", &energy);
+    rec_tree = new TTree("rec_data", "rec_data");
+    rec_tree->Branch("true_direction", true_direction,"true_direction[2]/D");
+    rec_tree->Branch("rec_direction", rec_direction, "rec_direction[2]/D");
+    rec_tree->Branch("true_energy", &energy, "energy/D");
     if(exist_lookup)
-        rec_tree->Branch("rec_energy", &rec_energy);
-    rec_tree->Branch("true_core", &core_pos);
-    rec_tree->Branch("rec_core", &rec_core);
+        rec_tree->Branch("rec_energy", &rec_energy, "rec_energy/D");
+    rec_tree->Branch("true_core", core_pos, "core_pos[2]/D");
+    rec_tree->Branch("rec_core", rec_core, "rec_core[2]/D");
 
 }
 
@@ -45,7 +65,7 @@ double TRecData::compute_direction_error()
 
 void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
 {
-    double x_ref[LACT_MAXTEL], y_ref[LACT_MAXTEL], alpha_ref[LACT_MAXTEL];
+    double x_ref[LACT_MAXTEL]{0}, y_ref[LACT_MAXTEL]{0}, alpha_ref[LACT_MAXTEL]{0};
     double w ; //weight we will use
     double sum_xs, sum_xs2, sum_ys, sum_ys2, sum_w;
     double xs, ys, angs; // intersect point and the angle between two lines
@@ -63,8 +83,8 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
             continue;
         }
 
-        cam_to_ref(image->GetTelImageX(itel), image->GetTelImageY(itel), image->GetTelAlpha(itel), point_direction[0], point_direction[1],
-            0., Tel_direction[itel][0], Tel_direction[itel][1], image->GetTelFocal(itel), &x_ref[itel], &y_ref[itel], &alpha_ref[itel]);
+        cam_to_ref(image->GetTelImageX(itel), image->GetTelImageY(itel), image->GetTelAlpha(itel), point_direction[0] * TMath::DegToRad(), point_direction[1]* TMath::DegToRad(),
+            0., Tel_direction[itel][0] *TMath::DegToRad() , Tel_direction[itel][1] * TMath::DegToRad(), 1.0, &x_ref[itel], &y_ref[itel], &alpha_ref[itel]);
     }
     sum_xs = sum_ys = sum_w = sum_xs2 = sum_ys2 = 0.;
     for(int i = 0; i < image->image_tel.size(); i++)
@@ -99,9 +119,9 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     }
     sum_xs /= sum_w;
     sum_ys /= sum_w;
-    offset_to_angles(sum_xs, sum_ys, point_direction[0], point_direction[1], 1.0, &rec_az, &rec_alt);
+    offset_to_angles(sum_xs, sum_ys, point_direction[0] * TMath::DegToRad(), point_direction[1] * TMath::DegToRad(), 1.0, &rec_az, &rec_alt);
     rec_az -= (2.*TMath::Pi()) * floor(rec_az / (2 * TMath::Pi()));
-    SetPointDirection(rec_az, rec_alt);
+    SetRecDirection(rec_az * TMath::RadToDeg(), rec_alt * TMath::RadToDeg());
     get_shower_trans_matrix(rec_az, rec_alt, trans);
     for( int i = 0; i < image->image_tel.size(); i++)
     {
@@ -152,6 +172,7 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     
     xc = xh - trans[2][0]*zh/trans[2][2];
     yc = yh - trans[2][1]*zh/trans[2][2];
-    SetCorePos(xc, yc);
+    SetRecCore(xc, yc);
+
 
 }

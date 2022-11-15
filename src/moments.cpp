@@ -8,7 +8,7 @@ void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int
     unsigned int tel_id;
     for(int i = 0; i < ntel; i++)
     {
-        tel_id = Trig_List[i];
+        tel_id = Trig_List[i] - 1;
         for(int p = 0; p < npix[tel_id]; p++)
         {
             if( pe_list[tel_id][p] > tail_cuts[1])
@@ -56,7 +56,7 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
     {
         double sx = 0, sxx = 0, sxy = 0, sy = 0, syy  = 0, sA = 0.;
         double a = 0, b = 0;
-        tel_id = Trig_List[i];
+        tel_id = Trig_List[i] - 1;
         if(pixel_in_image[tel_id].size() < 3)
         {
             continue;
@@ -129,6 +129,6 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
         image->SetTelImageX(tel_id, sx) ;
         image->SetTelImageY(tel_id, sy) ;
     }
-
-
+    
+    
 }

@@ -1,23 +1,14 @@
 #ifndef LACTree_H
 #define LACTree_H
 
-#include "TH1F.h"
 #include "TMath.h"
 #include "TTree.h"
 
-#include <algorithm>
-#include <bitset>
-#include <fstream>
 #include <iostream>
-#include <map>
-#include <sstream>
-#include <stdint.h>
 #include <string>
-#include <vector>
 
 #include "Limits_defined.h"
 
-using namespace std;
 
 class LACTree
 {
@@ -34,12 +25,12 @@ class LACTree
         float az;
         float ze;
         float altitude;
-        float Tel_az;
-        float Tel_ze;   
+        float Tel_az;             // The exact Position Tel point (not considered the point error)
+        float Tel_ze;             // The same like above 
         float Tel_al;
         unsigned int runNumber;
         unsigned int eventNumber; 
-        float Point_Az[LACT_MAXTEL];
+        float Point_Az[LACT_MAXTEL]; // Considered the point error
         float Point_Al[LACT_MAXTEL];
         
         //image parameter not used by now
@@ -75,14 +66,14 @@ class LACTree
         float pulse_timing[LACT_MAXTEL][LACT_MAX_TIMELEVELS][LACT_MAXPIXELS];
         short int raw_max[LACT_MAXTEL][LACT_MAXPIXELS];
 
-        bool fadc_read_write;   //whether write the samples of the fadc
+        char fadc_read_write;   //whether write the samples of the fadc
         unsigned short int fadc_num_samples[LACT_MAXTEL];
         unsigned short int fadc_trace[LACT_MAXTEL][LACT_SUMWINDOW][LACT_MAXPIXELS];
         unsigned short int fadc_HG[LACT_MAXTEL][LACT_MAXPIXELS];
         unsigned short int Telescope_ZeroSuppression[LACT_MAXTEL];
 
         bool fillPeLeaf;
-        float pe_list[LACT_MAXTEL][LACT_MAXPIXELS];
+        unsigned short int  pe_list[LACT_MAXTEL][LACT_MAXPIXELS];
 
 
 
@@ -107,7 +98,7 @@ class LACTree
         }
 
 
-        bool initEventTree(bool Full_tree, bool Calibration_tree);
+        bool initEventTree();
         bool initEventTree(TTree* t);
         void resetDataVectors(unsigned int NMAX_LACT_MAXTEL=LACT_MAXTEL,unsigned int NMAX_LACT_MAXPIXELS=LACT_MAXPIXELS);
 

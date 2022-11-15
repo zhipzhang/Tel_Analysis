@@ -16,11 +16,11 @@ class Detect
         int Npix;
         int Npix_disabled;
         int Ngains;
-        float X_PixMM[LACT_MAXPIXELS];
-        float Y_PixMM[LACT_MAXPIXELS];
-        float R_PixMM[LACT_MAXPIXELS];
+        float *X_PixMM;
+        float *Y_PixMM;
+        float *R_PixMM;
         int Pixel_Shape[LACT_MAXPIXELS];
-        float Pixel_Size[LACT_MAXPIXELS];
+        float *Pixel_Size;
         int NMirrors;
         float Mirror_Area;
 

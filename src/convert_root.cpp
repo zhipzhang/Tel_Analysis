@@ -34,6 +34,9 @@
 #include "LACTree.h"
 #include "Detect_config.h"
 #include "TCalibData.h"
+#include "LACTTeldata.h"
+#include "LACTEvent.h"
+#include "HitPix.h"
 
 bool fFillPELeaf = false;
 bool Only_High_Gain = true;
@@ -56,7 +59,17 @@ void stop_signal_function( int isig )
     signal( SIGINT, SIG_DFL );
     signal( SIGTERM, SIG_DFL );
 }
-static void syntax( char* program );
+void syntax( char* program );
+
+void syntax( char* program)
+{
+    printf("Program %s Usage : \n", program);
+    printf("--root_file choose the ROOT output file (default: dst.root) \n");
+    printf("--out_file  choose the Eventio output file (not used right now) \n");
+    printf("--power-low power law index (will used when weighted) \n");
+    printf("--no_fadc  if it's true , no fadc data will be stored! \n");
+    printf("--write_pe stored the photoelectrons hit at each pixel \n");
+}
 
 
 
@@ -104,8 +117,6 @@ bool DST_fillMCEvent(LACTree* fData, AllHessData* hsdata)
     fData->ze = 90. - hsdata->mc_shower.altitude * TMath::RadToDeg(); 
     fData->xcore = hsdata->mc_event.xcore;
     fData->ycore = hsdata->mc_event.ycore;
-    //fData->Tel_az = hsdata->run_header.direction[0] * TMath::RadToDeg();
-    //fData->Tel_ze = hsdata->run_header.direction[1] * TMath::RadToDeg(); 
     if(fData->Mctree)
     {
         fData->Mctree->Fill();
@@ -115,9 +126,9 @@ bool DST_fillMCEvent(LACTree* fData, AllHessData* hsdata)
 }
 
 
-bool DST_fillEvent(LACTree* fData, AllHessData* hsdata);
+bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx);
 
-bool DST_fillEvent(LACTree* fData, AllHessData* hsdata)
+bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
 {
     if(!fData || !hsdata)
     {
@@ -134,11 +145,12 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata)
     fData->energy = hsdata->mc_shower.energy;
     fData->az = hsdata->mc_shower.azimuth * TMath::RadToDeg();
     fData->ze = 90. - hsdata->mc_shower.altitude * TMath::RadToDeg(); 
+    fData->altitude = hsdata->mc_shower.altitude * TMath::RadToDeg();
     fData->xcore = hsdata->mc_event.xcore;
     fData->ycore = hsdata->mc_event.ycore;  
     double lg_E = log10(fData->energy);
     double index = hsdata->mc_run_header.spectral_index;
-    fData->weight = pow(fData->energy, (-2.7 - index));
+    fData->weight = pow(fData->energy, (plidx - index));
 
     //check flag whether it is trigger;
     //trigger data
@@ -249,6 +261,35 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata)
     return true;
 
 }
+void FillEvent(LACTEvent*,  AllHessData*);
+void FillEvent(LACTEvent* lactevent,  AllHessData* hsdata)
+{
+    lactevent->SetRunnumber(hsdata->run_header.run);
+    lactevent->SetEventnumber(hsdata->mc_event.event);
+    lactevent->SetPrimary(hsdata->mc_shower.primary_id);
+    lactevent->SetEnergy(hsdata->mc_shower.energy);
+    lactevent->SetAzimuth(hsdata->mc_shower.azimuth * TMath::RadToDeg());
+    lactevent->SetAltitude(hsdata->mc_shower.altitude * TMath::RadToDeg());
+    lactevent->SetCorex(hsdata->mc_event.xcore);
+    lactevent->SetCorey(hsdata->mc_event.ycore);
+    lactevent->SetRefaz(hsdata->run_header.direction[0] * TMath::RadToDeg());
+    lactevent->SetRefal(hsdata->run_header.direction[1] * TMath::RadToDeg());
+    for( unsigned int i = 0; i < (unsigned int)hsdata->event.central.num_teltrg; i++)
+    {
+        int tel_id = hsdata->event.central.teldata_list[i];
+        lactevent->GetiTel(tel_id).SetTelid(tel_id);
+        lactevent->GetiTel(tel_id).SetTelaz(hsdata->event.trackdata[tel_id].azimuth_raw * TMath::RadToDeg());
+        lactevent->GetiTel(tel_id).SetTelze(hsdata->event.trackdata[tel_id].altitude_raw * TMath::RadToDeg());
+        for(int p = 0; p < hsdata->camera_set[tel_id].num_pixels; p++)
+        {
+            double pe = hsdata->mc_event.mc_pe_list[tel_id].pe_count[p];
+            if( pe > 0)
+               lactevent->GetiTel(tel_id).AddHitpix(p, 0., pe);
+            
+        }
+
+    }
+}
 using namespace std;
 /*
     write the main program
@@ -276,7 +317,6 @@ int main(int argc,char** argv)
     string iobuf_file=" ";                   // new eventio file 
 
     static AllHessData* hsdata;
-
      /* Catch INTerrupt and TERMinate signals to stop program */
     signal( SIGINT, stop_signal_function );
     signal( SIGTERM, stop_signal_function );
@@ -293,7 +333,7 @@ int main(int argc,char** argv)
 
     while (argc >1)
     {
-        if(strcmp(argv[1], "-root_file") == 0 && argc >2)
+        if(strcmp(argv[1], "--root_file") == 0 && argc >2)
         {
             dst_file = argv[2];
             argc -= 2;
@@ -321,14 +361,14 @@ int main(int argc,char** argv)
             argv += 2;
             continue;
         }
-        else if(strcmp(argv[1], "-no_fadc") == 0 )
+        else if(strcmp(argv[1], "--no_fadc") == 0 )
         {
             NO_fadc  = true;
             argc -= 1;
             argv += 1;
             continue;
         }
-        else if(strcmp(argv[1], "-pe") == 0)
+        else if(strcmp(argv[1], "--write-pe") == 0)
         {
             fFillPELeaf = true;
             argc -= 1;
@@ -360,7 +400,12 @@ int main(int argc,char** argv)
         std::cout << "Error while opening root file " << dst_file << std::endl;
         exit(1);
     }
-    //open the new event_io file which name is iobuf_name
+    LACTEvent* lactevent = new LACTEvent(); 
+    TTree* event_tree = new TTree("LACTevent", "events data");
+    event_tree->Branch("event", &lactevent);
+
+    // open the new event_io file which name is iobuf_name
+    // Maybe Can store the histogram using the eventio format
    /* if(iobuf_file != NULL && iobuf->output_file == NULL)
     {
         iobuf->output_file = fileopen(iobuf_file.c_str(), "w");
@@ -380,7 +425,7 @@ int main(int argc,char** argv)
     DST->setFADC(!NO_fadc); //if no_fadc is true , set FADC to False
     DST->setFillPEleaf(fFillPELeaf);
     DST->initMctree();
-    DST->initEventTree(1,1);
+    DST->initEventTree();
 
 
     Detect *detect = new Detect();
@@ -403,8 +448,9 @@ int main(int argc,char** argv)
         {
             if( argv[1][0] == '-' && argv[1][1] != '\0' )
             {
-                //syntax( program );
-                ;
+                syntax( program );
+                exit(EXIT_FAILURE);
+                
             }
             else
             {
@@ -705,8 +751,10 @@ int main(int argc,char** argv)
                     }
                     ntrg++;
                     
-                    DST_fillEvent( DST, hsdata);
-                    
+                    DST_fillEvent( DST, hsdata ,plidx);
+                    FillEvent(lactevent,  hsdata);
+                    event_tree->Fill();
+                    lactevent->clear();
                     break;
                     
                 /* =================================================== */
@@ -812,20 +860,20 @@ int main(int argc,char** argv)
         calib_data->GetCalibTree()->Write();
     }
 
-    if(DST && DST->getEventTree())
-    {
-        DST->getEventTree()->Write();
-        cout << "writing event tree: Writing "<< DST->getEventTree()->GetEntries()<<" events"<<endl;
-    }
     if(DST && DST->getMCTree())
     {
         DST->getMCTree()->Write();
     }
     detect->Fill_Data(hsdata);
+    if(DST->getEventTree())
+    {
+        DST->getEventTree()->Write();
+    }
     if(detect->Get_DetectTree())
     {
         detect->Get_DetectTree()->Write();
     }
+    event_tree->Write();
 
     if(root_file)
     {

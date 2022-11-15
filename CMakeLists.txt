@@ -9,17 +9,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1 CACHE BOOL "for clang" FORCE)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS " -g -O0   ")
+set(CMAKE_CXX_FLAGS " -g -O0 -DH_MAX_TEL=39 -DH_MAX_PIX=8000 ")
 
 set(HESS "/data/home/zhipz/hessioxxx/lib/libhessio.so")
 find_package(ROOT  CONFIG REQUIRED COMPONENTS Minuit)
 include("${ROOT_USE_FILE}")
-root_generate_dictionary(Class ${PROJECT_SOURCE_DIR}/include/MonteCarloRunHeader.h  ${PROJECT_SOURCE_DIR}/include/TImage_Parameter.h 
-                        LINKDEF ${PROJECT_SOURCE_DIR}/include/LinkDef.h)
+root_generate_dictionary(Class ${PROJECT_SOURCE_DIR}/include/MonteCarloRunHeader.h  ${PROJECT_SOURCE_DIR}/include/TImage_Parameter.h  ${PROJECT_SOURCE_DIR}/include/LACTEvent.h ${PROJECT_SOURCE_DIR}/include/LACTTeldata.h ${PROJECT_SOURCE_DIR}/include/HitPix.h
+		LINKDEF ${PROJECT_SOURCE_DIR}/include/LinkDef.h)
 
 
 add_library(class SHARED) 
-target_sources(class PRIVATE ${PROJECT_SOURCE_DIR}/src/MonteCarloRunHeader.cpp ${PROJECT_SOURCE_DIR}/src/TImage_Parameter.cpp ${PROJECT_SOURCE_DIR}/src/rec_tools.c Class.cxx)
+target_sources(class PRIVATE ${PROJECT_SOURCE_DIR}/src/MonteCarloRunHeader.cpp ${PROJECT_SOURCE_DIR}/src/TImage_Parameter.cpp ${PROJECT_SOURCE_DIR}/src/rec_tools.c   ${PROJECT_SOURCE_DIR}/src/LACTTeldata.cpp Class.cxx ${PROJECT_SOURCE_DIR}/src/LACTEvent.cpp ${PROJECT_SOURCE_DIR}/src/HitPix.cpp)
 target_include_directories(class PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(class PRIVATE  ${ROOT_LIBRARIES} )
 

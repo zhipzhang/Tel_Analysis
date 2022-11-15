@@ -18,6 +18,8 @@ LACTree::LACTree()
     xcore = 0;
     ycore = 0;
     flag = 0;
+    fadc_read_write = 0;
+    fillPeLeaf = 0;
     resetDataVectors();
 }
 bool LACTree::initMctree()
@@ -32,12 +34,10 @@ bool LACTree::initMctree()
     Mctree->Branch( "MCycore", &ycore, "MCycore/F" );
     Mctree->Branch( "MCze", &ze, "MCze/F" );
     Mctree->Branch( "MCaz", &az, "MCaz/F" );
-   // Mctree->Branch( "MCtel_az", &Tel_az, "MC/F" );
-   // Mctree->Branch( "MCtel_ze", &Tel_ze, "MCyoff/F" );
     
     return true;
 }
-bool LACTree::initEventTree(bool Full_tree, bool Calibration_tree)
+bool LACTree::initEventTree()
 {
     EventTree = new TTree("event","event data tree");
     EventTree->SetMaxTreeSize(1000 * Long64_t(2000000000));
@@ -64,6 +64,7 @@ bool LACTree::initEventTree(bool Full_tree, bool Calibration_tree)
         sprintf(tname,"Pe[ntel_data][%d]/s",LACT_MAXPIXELS);
         EventTree->Branch("Pe",pe_list,tname);
     }
+    EventTree->Branch( "Write_fadc", &fadc_read_write, "Write_fadc/B");
     if(fadc_read_write)
     {
         sprintf(tname,"fadc_HG[ntel_data][%d]/S",LACT_MAXPIXELS);
@@ -118,14 +119,14 @@ bool LACTree::initEventTree(TTree *t)
         std::cout << "Event Tree Have no Entries" << std::endl;
     }
 
-    if(EventTree->GetBranch("Mce0"))
+    if(EventTree->GetBranch("MCe0"))
     {
         fMC = true;
     }
 
     EventTree->SetBranchAddress("runNumber", &runNumber);
     EventTree->SetBranchAddress("eventNumber", &eventNumber);
-    EventTree->SetBranchAddress("ntel", &ntel);
+    //EventTree->SetBranchAddress("ntel", &ntel);
     
     EventTree->SetBranchAddress("Paz", Point_Az);
     EventTree->SetBranchAddress("Pal", Point_Al);
@@ -134,6 +135,12 @@ bool LACTree::initEventTree(TTree *t)
     EventTree->SetBranchAddress("ltrig_list", &LTrig_list);
     EventTree->SetBranchAddress("ntel_data", &ntel_data);
     EventTree->SetBranchAddress("tel_data", tel_data);
+    EventTree->SetBranchAddress("Write_fadc", &fadc_read_write);
+    if(EventTree->GetBranch("Pe"))
+    {
+        EventTree->SetBranchAddress("Pe", pe_list);
+        setFillPEleaf(true);
+    }
     
     if( fMC )
     {
