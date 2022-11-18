@@ -17,6 +17,7 @@ public:
     bool  exist_lookup;
     double rec_energy;
     double rec_core[2];
+    double direction_error;
      
     void InitWrite();
     void InitRead(TTree* t);
@@ -25,7 +26,7 @@ public:
     {
         return rec_tree;
     }
-    double compute_direction_error();
+    void compute_direction_error();
     void GetData(LACTree*);
     void SetRecDirection(double ref_az, double ref_al)
     {

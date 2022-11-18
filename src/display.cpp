@@ -1,16 +1,5 @@
-#include "TH2Poly.h"
-#include "TImage_Parameter.h"
-#include "vector"
-#include "TTree.h"
-#include "TCanvas.h"
-#include "TRecData.h"
-#include "Limits_defined.h"
-#include "TEllipse.h"
-#include "TPaveText.h"
-
-void display(TImage_Parameter* , double pe[][LACT_MAXPIXELS], std::vector<int> *pixel_in_image, double xpix[][LACT_MAXPIXELS], double ypix[][LACT_MAXPIXELS],double pix_size[][LACT_MAXPIXELS], TRecData* rec, int id);
-
-void display(TImage_Parameter* image, double pe[][LACT_MAXPIXELS], std::vector<int> *pixel_in_image, double xpix[][LACT_MAX_TIMELEVELS], double ypix[][LACT_MAXPIXELS], double pix_size[][LACT_MAXPIXELS], TRecData* rec, int id)
+#include "display.h"
+void display(TImage_Parameter* image, double pe[][LACT_MAXPIXELS], std::vector<int> *pixel_in_image, float xpix[][LACT_MAX_TIMELEVELS], float ypix[][LACT_MAXPIXELS], double *pix_size, TRecData* rec)
 {
     int num = 0;
     for(int i = 0; i < image->image_tel.size(); i++)
@@ -22,7 +11,7 @@ void display(TImage_Parameter* image, double pe[][LACT_MAXPIXELS], std::vector<i
             TH2Poly* camera = new TH2Poly(Form("camera %d", tel_id), "", -6, 6, -6, 6);
             for(auto j: pixel_in_image[tel_id])
             {
-                double binsize = pix_size[tel_id][j] / image->GetTelFocal(tel_id);
+                double binsize = *pix_size / image->GetTelFocal(tel_id);
                 double x = xpix[tel_id][j];
                 double y = ypix[tel_id][j];
                 double bin_x[4] = {x - 0.5 * binsize, x + 0.5*binsize, x + 0.5*binsize, x - 0.5*binsize};

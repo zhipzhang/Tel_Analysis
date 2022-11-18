@@ -51,19 +51,29 @@
 #include "TRecData.h"
 #include "TCuts.h"
 #include "moments.h"
+#include "TH2Poly.h"
+#include "TTree.h"
+#include "TFile.h"
+#include "TCanvas.h"
+#include "TEllipse.h"
+#include "TPaveText.h"
+#ifdef IHEP
+std::string prefix = "root://eos01.ihep.ac.cn/";
+#else
+std::string prefix = "";
+#endif
 
+void display(TImage_Parameter* img, double pe[][LACT_MAXPIXELS], std::vector<int> *pixel_in_image, float xpix[][LACT_MAXPIXELS], float ypix[][LACT_MAXPIXELS],double *pix_size, TRecData* rec );
 using namespace std;
 //Image Analysis and Shower Reconstruction
 
 void syntax();
-void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, int* npix, double x_pix[][LACT_MAXPIXELS], double y_pix[][LACT_MAXPIXELS],
-                          double (*pix_size)[LACT_MAXPIXELS]);
+void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, int* npix, float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS],
+                          double *pix_size);
 
-static LACTree* DSTTree;
-static Detect* detect;
 int main(int argc, char** argv)
 {
-    const char* input_file = NULL;
+    std::string input_file = "";
     string out_file = "dst.root";
     TImage_Parameter* image = new TImage_Parameter();
     TCuts *cuts_option = new TCuts();
@@ -71,18 +81,19 @@ int main(int argc, char** argv)
 
     bool do_image_clean = true; // true if we do the tail-cuts image clean
     double auto_lookup = false;
-    double tail_cuts[2]{0} ;
+    double tail_cuts[2]={5,10} ;
 
     int ntel;
     static double tel_pos[LACT_MAXTEL][3];
     double focal_length[LACT_MAXTEL];
     double effective_focal_length[LACT_MAXTEL];
-    static double pe_list[LACT_MAXTEL][LACT_MAXPIXELS]{0};
+    double pe_list[LACT_MAXTEL][LACT_MAXPIXELS]{0};
     int npix[LACT_MAXTEL];
     double tel_direction[LACT_MAXTEL][2];
-    static double x_pix[LACT_MAXTEL][LACT_MAXPIXELS];
-    static double y_pix[LACT_MAXTEL][LACT_MAXPIXELS];
-    static double pix_size[LACT_MAXTEL][LACT_MAXPIXELS];     //Use Static otherwise the Stack size will exceed
+    static float x_pix[LACT_MAXTEL][LACT_MAXPIXELS];
+    static float y_pix[LACT_MAXTEL][LACT_MAXPIXELS];
+    double pix_size;                                    // we suppose that all pixel have same pix_size
+      //Use Static otherwise the Stack size will exceed
 
     vector<int> pixel_in_image[LACT_MAXTEL];               //pixel id  which pass the tail-cuts 
     map<int, vector<int> > pixel_neighbors[LACT_MAXTEL];  //use map to store the pixel_neighbors
@@ -156,23 +167,24 @@ int main(int argc, char** argv)
     rec->InitWrite();
     
 
-    while( argc > 1 || input_file != NULL)
+    while( argc > 1 || !input_file.empty() )
     {
-        input_file = argv[1];
+        std::cout<< "Opening the input file" <<argv[1] << std::endl;;
+        input_file = prefix + argv[1];
         argc--;
         argv++;
-        TFile* root_file = TFile::Open(input_file, "read");
+        TFile* root_file = TFile::Open(input_file.c_str(), "read");
         TTree* event_tree = (TTree*) root_file->Get("event");
         TTree* config_tree = (TTree*) root_file->Get("config_tree");
-        input_file = NULL;
+        input_file = "";
 
-        DSTTree = new LACTree();
-        detect = new Detect();
+        LACTree* DSTTree = new LACTree();
+        Detect* detect = new Detect();
         
         DSTTree->initEventTree(event_tree);
         detect->InitRead(config_tree);
 
-        if(config_tree)        
+        if(config_tree )        
         {
             for(int i = 0; i < config_tree->GetEntries(); i++)
             {
@@ -199,12 +211,14 @@ int main(int argc, char** argv)
                 {
                     x_pix[itel][p] = detect->X_PixMM[p] / 1000;
                     y_pix[itel][p] = detect->Y_PixMM[p] / 1000;
-                    pix_size[itel][p] = detect->Pixel_Size[p] /1000;
                 }
+                pix_size = detect->Pixel_Size[0] /1000;
 
 
             }
-            compute_pixel_neighbors(pixel_neighbors, ntel, npix, x_pix, y_pix, pix_size);
+           compute_pixel_neighbors(pixel_neighbors, ntel, npix, x_pix, y_pix, &pix_size);
+
+            
         }
         else
         {
@@ -254,20 +268,33 @@ int main(int argc, char** argv)
             }
             compute_moments(image, pe_list, pixel_in_image, ntrig, DSTTree->GetTrig_List(), x_pix, y_pix);
             image->ConvertToRad(focal_length);
+            image->ComputeTelRp(tel_pos, rec);
             rec->RecShower(image, cuts_option);
             image_tree->Fill();
+            rec->compute_direction_error();
             rec->GetRecTree()->Fill();
-            printf("%lf %lf \n",rec->rec_core[0], rec->rec_core[1]);
+            if(i == 74)
+            {
+                display(image, pe_list, pixel_in_image, x_pix, y_pix, &pix_size, rec);
+            }
+            memset(pe_list, 0, LACT_MAXTEL*LACT_MAXPIXELS*sizeof(pe_list[0][0]));
+            for(int i = 0; i< LACT_MAXTEL; i++)
+            {
+                pixel_in_image[i].clear();
+            }
             rec->Reset();
             image->clear();
-            
         }
+            delete DSTTree;
+            delete detect;
+            root_file->Close();
 
     }
     out_root->cd();
     image_tree->Write();
     rec->GetRecTree()->Write();
     out_root->Close();
+
 }
 void syntax()
 {
@@ -275,8 +302,8 @@ void syntax()
     printf("--tail-cuts  use two level cuts to clean image \n");
 
 }
-void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, int* npix, double x_pix[][LACT_MAXPIXELS], double y_pix[][LACT_MAXPIXELS], 
-                            double (*pix_size)[LACT_MAXPIXELS])
+void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, int* npix, float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS], 
+                            double* pix_size)
 {
     double x_j, y_j;
     double x_k, y_k;
@@ -287,14 +314,14 @@ void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, i
         {
             x_j = x_pix[itel][j];
             y_j = y_pix[itel][j];
-            size_j = pix_size[itel][j] * 0.5;
+            size_j = *pix_size * 0.5;
             for(int k = 0; k < npix[itel]; k++)
             {
                 if( k != j)
                 {
                     x_k = x_pix[itel][k];
                     y_k = y_pix[itel][k];
-                    size_k = pix_size[itel][k] * 0.5;
+                    size_k = *pix_size * 0.5;
 
                     if(sqrt(pow(x_j - x_k, 2) + pow(y_j - y_k ,2)) < 1.5 *(size_j +size_k) )
                     {
@@ -310,5 +337,43 @@ void compute_pixel_neighbors(map<int, vector<int> > *pixel_neighbor, int ntel, i
             }
             
         }
+    }
+}
+void display(TImage_Parameter* image, double pe[][LACT_MAXPIXELS], std::vector<int> *pixel_in_image, float xpix[][LACT_MAXPIXELS], float ypix[][LACT_MAXPIXELS], double *pix_size, TRecData* rec)
+{
+    int num = 0;
+    for(int i = 0; i < image->image_tel.size(); i++)
+    {
+        int tel_id = image->image_tel[i];
+        if(image->GetTelSize(tel_id) > 50)
+        {
+            TCanvas* camera_image = new TCanvas(Form("LACT image of camera %d", tel_id), "LACT image", 1600, 1600);
+            TH2Poly* camera = new TH2Poly(Form("camera %d", tel_id), "", -6, 6, -6, 6);
+            for(auto j: pixel_in_image[tel_id])
+            {
+                double binsize = *pix_size / image->GetTelFocal(tel_id) * TMath::RadToDeg();
+                double x = xpix[tel_id][j]/ image->GetTelFocal(tel_id) * TMath::RadToDeg();
+                double y = ypix[tel_id][j]/ image->GetTelFocal(tel_id) * TMath::RadToDeg();
+                double bin_x[4] = {x - 0.5 * binsize, x + 0.5*binsize, x + 0.5*binsize, x - 0.5*binsize};
+                double bin_y[4] = {y - 0.5 * binsize, y - 0.5*binsize, y + 0.5*binsize, y + 0.5*binsize};
+                camera->AddBin(4, bin_x, bin_y);
+                camera->Fill(x, y, pe[tel_id][j]);
+
+            }
+            camera->Draw("COLZ");
+            TEllipse* ellipse = new TEllipse(image->GetTelImageX(tel_id) * TMath::RadToDeg(), image->GetTelImageY(tel_id) * TMath::RadToDeg(), image->GetTelLength(tel_id) * TMath::RadToDeg(), image->GetTelwidth(tel_id) * TMath::RadToDeg(),
+                                            0, 360, image->GetTelAlpha(tel_id) * TMath::RadToDeg());
+            ellipse->SetLineWidth(2);
+            ellipse->SetLineColor(2);
+            ellipse->SetFillStyle(0);
+            ellipse->Draw();
+
+            TPaveText *pavet = new TPaveText(-6, 6.3, 6, 7.6);
+            pavet->SetFillStyle(0);
+            pavet->AddText(Form("event_number: %d, Tel: %d, energy: %.4lf , azimuth: %.4lf, zenith: %.4lf Rp:%.4lf m", rec->GetEventNumber(),tel_id, rec->GetEnergy(), rec->GetAzimuth(), rec->GetAltitude(), image->GetTelRp(tel_id)));
+            pavet->Draw("same");
+            camera_image->SaveAs(Form("./image_camera%d.png", tel_id));
+        }
+
     }
 }

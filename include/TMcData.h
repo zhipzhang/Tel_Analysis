@@ -14,6 +14,7 @@ class TMcData
         double point_direction[2];
         double Tel_direction[LACT_MAXTEL][2];
         double Tel_position[LACT_MAXTEL][3];
+        double Rp[LACT_MAXTEL];
         double weight;
         int runnumber;
         int eventnumber;

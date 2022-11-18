@@ -33,8 +33,8 @@ void TImage_Parameter::ComputeTelRp(double tel_pos[][3], TMcData* mc)
     for(int i = 0; i < image_tel.size(); i++)
     {
         int itel = image_tel[i];
-        rp[itel] = line_point_distance(mc->core_pos[0], mc->core_pos[1], 0, sin(mc->true_direction[0]) * cos(mc->true_direction[1]),
-                                        -sin(mc->true_direction[0]) * sin(mc->true_direction[1]), cos(mc->true_direction[0])
+        rp[itel] = line_point_distance(mc->core_pos[0], mc->core_pos[1], 0, cos(mc->true_direction[0] * TMath::DegToRad()) * cos(mc->true_direction[1] * TMath::DegToRad()),
+                                        -sin(mc->true_direction[0] * TMath::DegToRad()) * cos(mc->true_direction[1] * TMath::DegToRad()), sin(mc->true_direction[1] * TMath::DegToRad() )
                                         ,tel_pos[itel][0], tel_pos[itel][1], tel_pos[itel][2]);
         
     }

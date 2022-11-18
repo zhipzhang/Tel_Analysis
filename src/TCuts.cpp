@@ -3,7 +3,7 @@
 
 TCuts::TCuts()
 {
-    min_size = 50.;
+    min_size = 100.;
     max_rp = 9999.;
     max_dist = 9999.;
     energy_range[0] = 0.;

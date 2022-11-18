@@ -59,6 +59,11 @@ bool LACTree::initEventTree()
     EventTree->Branch( "MCze", &ze, "MCze/F" );
     EventTree->Branch( "MCaz", &az, "MCaz/F" );
     EventTree->Branch( "weight", &weight,"weight/F");
+    EventTree->Branch("width", width, "width[ntrig]/F");
+    EventTree->Branch("length", length, "length[ntrig]/F");
+    EventTree->Branch("imgx", x_img, "imgx[ntrig]/F");
+    EventTree->Branch("imgy", y_img, "imgy[ntrig]/F");
+    EventTree->Branch("size", size, "size[ntrig]/F");
     if(fillPeLeaf)
     {
         sprintf(tname,"Pe[ntel_data][%d]/s",LACT_MAXPIXELS);

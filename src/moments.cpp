@@ -18,6 +18,7 @@ void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int
                     if(pe_list[tel_id][k] > tail_cuts[0])
                     {
                         pixel_in_image[tel_id].push_back(p);
+                        break;
                     }
                     else
                     {
@@ -34,6 +35,7 @@ void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int
                     if(pe_list[tel_id][k] > tail_cuts[1])
                     {
                         pixel_in_image[tel_id].push_back(p);
+                        break;
                     }
                 }
             }
@@ -49,12 +51,13 @@ void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int
 /*be careful alpha not consider the camera rotation !*/
 
 void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], std::vector<int>* pixel_in_image,unsigned int ntel, unsigned int* Trig_List,
-                     double x_pix[][LACT_MAXPIXELS], double y_pix[][LACT_MAXPIXELS])
+                     float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS])
 {
     int tel_id;
     for(int i = 0; i < ntel; i++)
     {
-        double sx = 0, sxx = 0, sxy = 0, sy = 0, syy  = 0, sA = 0.;
+        double sx = 0, sxx = 0, sxy = 0, sy = 0, syy  = 0, sA = 0. ,sx3 = 0.;
+        double beta, cb, sb;
         double a = 0, b = 0;
         tel_id = Trig_List[i] - 1;
         if(pixel_in_image[tel_id].size() < 3)
@@ -124,10 +127,34 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
                     a = sy - b*sx;
             }
         }
-        image->SetTelAlpha(tel_id, atan(b));  
+        beta = atan(b);
+        cb = cos(beta);
+        sb = sin(beta);
         image->SetTelSize(tel_id, sA);
         image->SetTelImageX(tel_id, sx) ;
         image->SetTelImageY(tel_id, sy) ;
+        sxx = sx3 = 0.;
+        for(int j = 0; j < pixel_in_image[tel_id].size(); j++)
+        {
+            int ipix = pixel_in_image[tel_id][j];
+            double x = x_pix[tel_id][ipix];
+            double y = y_pix[tel_id][ipix];
+            double A = pe_list[tel_id][ipix];
+            double xp;
+            xp = cb*(x -sx) + sb * (y - sy);
+            sxx += (A*xp) * xp;
+            sx3 += ((A*xp) * xp) * xp;
+            
+        }
+        if(sx3 / pow(sxx, 1.5) <0. )
+        {
+            beta = beta * TMath::RadToDeg() + 180;
+        }
+        else
+        {
+            beta = beta * TMath::RadToDeg();
+        }
+        image->SetTelAlpha(tel_id, beta*TMath::DegToRad());  
     }
     
     

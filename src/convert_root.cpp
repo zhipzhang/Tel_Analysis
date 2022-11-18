@@ -170,6 +170,11 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
         {
             fData->LTrig_list[i_ntel_trig] = hsdata->event.central.teltrg_list[t];
             fData->LTime[i_ntel_trig] = hsdata->event.central.teltrg_time[t];
+            fData->length[i_ntel_trig] = hsdata->event.teldata[t].img->l;
+            fData->width[i_ntel_trig] = hsdata->event.teldata[t].img->w;
+            fData->x_img[i_ntel_trig] = hsdata->event.teldata[t].img->x;
+            fData->y_img[i_ntel_trig] = hsdata->event.teldata[t].img->y;
+            fData->size[i_ntel_trig] = hsdata->event.teldata[t].img->amplitude;
         }
         i_ntel_trig++;
     }
@@ -258,6 +263,7 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
     {
         fData->EventTree->Fill();
     }
+    fData->resetDataVectors();
     return true;
 
 }

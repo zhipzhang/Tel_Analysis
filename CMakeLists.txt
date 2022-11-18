@@ -33,3 +33,7 @@ target_sources(Analysis PUBLIC ${PROJECT_SOURCE_DIR}/src/Analysis.cpp ${PROJECT_
 target_include_directories(Analysis PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(Analysis PRIVATE class ${ROOT_LIBRARIES})
 
+add_executable(Angular)
+target_sources(Angular PUBLIC ${PROJECT_SOURCE_DIR}/src/Angular.cpp ${PROJECT_SOURCE_DIR}/src/TRecData.cpp ${PROJECT_SOURCE_DIR}/src/rec_tools.c ${PROJECT_SOURCE_DIR}/src/LACTree.cpp ${PROJECT_SOURCE_DIR}/src/TMcData.cpp)
+target_include_directories(Angular PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(Angular PRIVATE  ${ROOT_LIBRARIES})

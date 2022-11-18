@@ -12,6 +12,13 @@ Detect::Detect()
     std::fill(Pos, Pos+3, 0);
 
 }
+Detect::~Detect()
+{
+    free(X_PixMM);
+    free(Y_PixMM);
+    free(R_PixMM);
+    free(Pixel_Size);
+}
 
 void Detect::Reset()
 {

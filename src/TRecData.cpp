@@ -37,6 +37,7 @@ void TRecData::InitWrite()
         rec_tree->Branch("rec_energy", &rec_energy, "rec_energy/D");
     rec_tree->Branch("true_core", core_pos, "core_pos[2]/D");
     rec_tree->Branch("rec_core", rec_core, "rec_core[2]/D");
+    rec_tree->Branch("direction_error", &direction_error, "direction_error/D");
 
 }
 
@@ -54,9 +55,9 @@ void TRecData::InitRead(TTree *t)
     rec_tree->SetBranchAddress("rec_core", &rec_core);
 }
 
-double TRecData::compute_direction_error()
+void TRecData::compute_direction_error()
 {
-    return angle_between(true_direction[1], true_direction[0], rec_direction[1], rec_direction[0]);
+    direction_error =  TMath::RadToDeg() *angle_between(true_direction[0] * TMath::DegToRad(), true_direction[1] * TMath::DegToRad(), rec_direction[0] * TMath::DegToRad(), rec_direction[1]*TMath::DegToRad());
 
 }
 
@@ -78,7 +79,8 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     for(int i = 0; i < image->image_tel.size(); i++)
     {
         int itel = image->image_tel[i];
-        if(image->GetTelSize(itel) < cut_option->min_size)
+        if(image->GetTelSize(itel) < cut_option->min_size  || image->GetTelRp(itel) > 450)
+
         {
             continue;
         }
@@ -90,8 +92,8 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     for(int i = 0; i < image->image_tel.size(); i++)
     {
         int itel = image->image_tel[i];
-        if(image->GetTelSize(itel) < cut_option->min_size || image->GetTelRp(itel) > cut_option->max_rp || 
-                image->GetDist(itel) > cut_option->max_dist)
+        if(image->GetTelSize(itel) < cut_option->min_size  || image->GetTelRp(itel) > 450)
+         
         {
             continue;
         }
