@@ -37,6 +37,11 @@
 #include "LACTTeldata.h"
 #include "LACTEvent.h"
 #include "HitPix.h"
+#ifdef IHEP
+std::string prefix = "root://eos01.ihep.ac.cn/";
+#else
+std::string prefix = "";
+#endif
 
 bool fFillPELeaf = false;
 bool Only_High_Gain = true;
@@ -400,6 +405,7 @@ int main(int argc,char** argv)
     }
  
     // open a root file to store data
+    dst_file = prefix +dst_file;
     TFile* root_file = new TFile( dst_file.c_str(), "RECREATE" );
     if( root_file->IsZombie())
     {
