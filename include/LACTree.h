@@ -28,6 +28,10 @@ class LACTree
         float Tel_az;             // The exact Position Tel point (not considered the point error)
         float Tel_ze;             // The same like above 
         float Tel_al;
+        float xmax; ///< Atmospheric depth of shower maximum [g/cm^2]  derived from all charged particels
+        float hmax; /// < Height of Shower maximum in xmax [m]>
+        float emax; /// < Atm. depth of maximum in electron number [g/cm^2] >
+        float cmax; /// < Atm. depth of maximum in Cherenkov photon emission >
         unsigned int runNumber;
         unsigned int eventNumber; 
         float Point_Az[LACT_MAXTEL]; // Considered the point error

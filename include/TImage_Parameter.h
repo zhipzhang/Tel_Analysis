@@ -4,24 +4,26 @@
 #include "Limits_defined.h"
 #include "TObject.h"
 #include <vector>
-#include "TMcData.h"
-
+#include "TMath.h"
 class TImage_Parameter : public TObject
 {
 public: 
     /* data */
     std::vector<int> image_tel; // show which tel is in image very_important
     double rp[LACT_MAXTEL];
+    double rec_rp[LACT_MAXTEL];
     double width[LACT_MAXTEL];
     double length[LACT_MAXTEL];
     double alpha[LACT_MAXTEL];
     double image_x[LACT_MAXTEL];  // All are stored in Rad;
     double image_y[LACT_MAXTEL];
+    double source_x[LACT_MAXTEL];
+    double source_y[LACT_MAXTEL];
     double size[LACT_MAXTEL];
     double focal_length[LACT_MAXTEL];
     bool have_lookup = false;
-    double MRSL;
-    double MRSW;
+    int nsig = 0;                    // significant Tel : tel pass the cuts_option
+    int sig_tel[LACT_MAXTEL];
 
     TImage_Parameter(/* args */);
     virtual ~TImage_Parameter();
@@ -89,12 +91,25 @@ public:
     {
         return rp[itel];
     }
+    double GetRecRp(int itel)
+    {
+        return rec_rp[itel];
+    }
     double GetTelFocal(int itel)
     {
         return focal_length[itel];
     }
+    void SetSigTel(int itel)
+    {
+        sig_tel[nsig++] = itel;
+    }
+    void SetTelSource(int itel, double sx, double sy)
+    {
+        source_x[itel] = sx;
+        source_y[itel] = sy;
+    }
+    
 
-    void ComputeTelRp(double tel_pos[][3], TMcData* );
     void ConvertToRad(double* focal_length);
     void clear();
     ClassDef(TImage_Parameter, 1)

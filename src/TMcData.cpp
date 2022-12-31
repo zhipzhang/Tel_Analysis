@@ -19,6 +19,8 @@ void TMcData::GetData(LACTree* DSTTree)
     SetRunNumber(DSTTree->runNumber);
     SetEventNumber(DSTTree->eventNumber);
     SetPointDirection(DSTTree->az,  90 - DSTTree->ze);
+    SetWeight(DSTTree->weight);
+    SetHeight(DSTTree->hmax, DSTTree->xmax, DSTTree->emax, DSTTree->cmax);
 }
 
 void TMcData::Reset()
@@ -28,6 +30,7 @@ void TMcData::Reset()
     std::fill(core_pos,core_pos + 2, 0.);
     runnumber = 0;
     eventnumber = 0;
+    hmax = xmax = emax = cmax = 0.;
     memset(Tel_direction, 0, 2*LACT_MAXTEL*sizeof(Tel_direction[0][0]));
 }
 TMcData::~TMcData()

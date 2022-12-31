@@ -34,9 +34,9 @@
 #include "LACTree.h"
 #include "Detect_config.h"
 #include "TCalibData.h"
-#include "LACTTeldata.h"
-#include "LACTEvent.h"
-#include "HitPix.h"
+//#include "LACTTeldata.h"
+//#include "LACTEvent.h"
+//#include "HitPix.h"
 #ifdef IHEP
 std::string prefix = "root://eos01.ihep.ac.cn/";
 #else
@@ -122,6 +122,10 @@ bool DST_fillMCEvent(LACTree* fData, AllHessData* hsdata)
     fData->ze = 90. - hsdata->mc_shower.altitude * TMath::RadToDeg(); 
     fData->xcore = hsdata->mc_event.xcore;
     fData->ycore = hsdata->mc_event.ycore;
+    fData->xmax = hsdata->mc_shower.xmax;
+    fData->hmax = hsdata->mc_shower.hmax;
+    fData->emax = hsdata->mc_shower.emax;
+    fData->cmax = hsdata->mc_shower.cmax;
     if(fData->Mctree)
     {
         fData->Mctree->Fill();
@@ -153,9 +157,17 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
     fData->altitude = hsdata->mc_shower.altitude * TMath::RadToDeg();
     fData->xcore = hsdata->mc_event.xcore;
     fData->ycore = hsdata->mc_event.ycore;  
+    fData->xmax = hsdata->mc_shower.xmax;
+    fData->hmax = hsdata->mc_shower.hmax;
+    fData->emax = hsdata->mc_shower.emax;
+    fData->cmax = hsdata->mc_shower.cmax;
     double lg_E = log10(fData->energy);
     double index = hsdata->mc_run_header.spectral_index;
     fData->weight = pow(fData->energy, (plidx - index));
+    fData->Tel_az = hsdata->run_header.direction[0] * TMath::RadToDeg();
+    fData->Tel_al = hsdata->run_header.direction[1] * TMath::RadToDeg();
+    fData->Tel_ze = hsdata->run_header.direction[1] * TMath::RadToDeg();
+    
 
     //check flag whether it is trigger;
     //trigger data
@@ -175,11 +187,6 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
         {
             fData->LTrig_list[i_ntel_trig] = hsdata->event.central.teltrg_list[t];
             fData->LTime[i_ntel_trig] = hsdata->event.central.teltrg_time[t];
-            fData->length[i_ntel_trig] = hsdata->event.teldata[t].img->l;
-            fData->width[i_ntel_trig] = hsdata->event.teldata[t].img->w;
-            fData->x_img[i_ntel_trig] = hsdata->event.teldata[t].img->x;
-            fData->y_img[i_ntel_trig] = hsdata->event.teldata[t].img->y;
-            fData->size[i_ntel_trig] = hsdata->event.teldata[t].img->amplitude;
         }
         i_ntel_trig++;
     }
@@ -203,6 +210,12 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
     {
         fData->tel_data[i_ntel_data] = (unsigned short int)hsdata->event.central.teldata_list[i];
         unsigned int telID = fData->tel_data[i_ntel_data]-1;
+        fData->length[i_ntel_data] = hsdata->event.teldata[telID].img->l;
+        fData->width[i_ntel_data] = hsdata->event.teldata[telID].img->w;
+        fData->x_img[i_ntel_data] = hsdata->event.teldata[telID].img->x;
+        fData->y_img[i_ntel_data] = hsdata->event.teldata[telID].img->y;
+        fData->size[i_ntel_data] = hsdata->event.teldata[telID].img->amplitude;
+        fData->phi[i_ntel_data] = hsdata->event.teldata[telID].img->phi;
         
         fData->fadc_num_samples[i_ntel_data]  = (unsigned short int)hsdata->event.teldata[telID].raw->num_samples;
         fData->Telescope_ZeroSuppression[i_ntel_data] = (unsigned short int)hsdata->event.teldata[telID].raw->zero_sup_mode;
@@ -272,7 +285,7 @@ bool DST_fillEvent(LACTree* fData, AllHessData* hsdata, double plidx)
     return true;
 
 }
-void FillEvent(LACTEvent*,  AllHessData*);
+/*void FillEvent(LACTEvent*,  AllHessData*);
 void FillEvent(LACTEvent* lactevent,  AllHessData* hsdata)
 {
     lactevent->SetRunnumber(hsdata->run_header.run);
@@ -301,6 +314,7 @@ void FillEvent(LACTEvent* lactevent,  AllHessData* hsdata)
 
     }
 }
+*/
 using namespace std;
 /*
     write the main program
@@ -412,9 +426,9 @@ int main(int argc,char** argv)
         std::cout << "Error while opening root file " << dst_file << std::endl;
         exit(1);
     }
-    LACTEvent* lactevent = new LACTEvent(); 
-    TTree* event_tree = new TTree("LACTevent", "events data");
-    event_tree->Branch("event", &lactevent);
+   // LACTEvent* lactevent = new LACTEvent(); 
+   // TTree* event_tree = new TTree("LACTevent", "events data");
+    //event_tree->Branch("event", &lactevent);
 
     // open the new event_io file which name is iobuf_name
     // Maybe Can store the histogram using the eventio format
@@ -764,9 +778,9 @@ int main(int argc,char** argv)
                     ntrg++;
                     
                     DST_fillEvent( DST, hsdata ,plidx);
-                    FillEvent(lactevent,  hsdata);
-                    event_tree->Fill();
-                    lactevent->clear();
+                    //FillEvent(lactevent,  hsdata);
+                    //event_tree->Fill();
+                    //lactevent->clear();
                     break;
                     
                 /* =================================================== */
@@ -885,7 +899,7 @@ int main(int argc,char** argv)
     {
         detect->Get_DetectTree()->Write();
     }
-    event_tree->Write();
+  //  event_tree->Write();
 
     if(root_file)
     {

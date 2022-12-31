@@ -18,6 +18,10 @@ class TMcData
         double weight;
         int runnumber;
         int eventnumber;
+        double hmax;
+        double xmax;
+        double cmax;
+        double emax;
 
         TMcData();
         ~TMcData();
@@ -60,6 +64,17 @@ class TMcData
         void SetTelDirection(double tel_dir[][2])
         {
             memcpy(Tel_direction, tel_dir, 2 * LACT_MAXTEL * sizeof(tel_dir[0][0]));
+        }
+        void SetWeight(double w)
+        {
+            weight = w;
+        }
+        void SetHeight(double shower_hmax, double shower_xmax, double shower_emax, double shower_cmax)
+        {
+            hmax = shower_hmax;
+            xmax = shower_xmax;
+            emax = shower_emax;
+            cmax = shower_cmax;
         }
         
         int GetRunNumber()

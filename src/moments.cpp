@@ -1,6 +1,11 @@
 #include "moments.h"
+#include <algorithm>
 #include <cmath>
+#include <queue>
 #include "TMath.h"
+#include "TMathBase.h"
+#include "rec_tools.h"
+#include "TRecData.h"
 
 void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int> > *pixel_neighbors, double* tail_cuts, 
                                                 std::vector<int> *pixel_in_image, unsigned int ntel, unsigned int* Trig_List, int* npix)
@@ -48,9 +53,79 @@ void image_clean(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int
 }
 
 
+void image_clean2(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<int> > *pixel_neighbors, double* tail_cuts, 
+                                                std::vector<int> *pixel_in_image, unsigned int ntel, unsigned int* Trig_List, int* npix)
+{
+    unsigned int tel_id;
+    bool flag = 1;
+    for(int i = 0; i < ntel; i++)
+    {
+        tel_id = Trig_List[i] - 1;
+        std::queue<int> tmp;
+        bool *res = (bool*)calloc(npix[tel_id], sizeof(bool));
+        int max_pos = std::max_element(pe_list[tel_id], pe_list[tel_id] + npix[tel_id]) - pe_list[tel_id];
+        if( pe_list[tel_id][max_pos] < 10)
+        {
+            continue;
+        }
+        else {
+            tmp.push(max_pos);
+        }
+        while( !tmp.empty() )
+        {
+            int tmp_p = tmp.front();
+            res[tmp_p] = 1;
+            pixel_in_image[tel_id].push_back(tmp_p);
+            tmp.pop();
+            if( pe_list[tel_id][tmp_p] > tail_cuts[1])
+            {
+                for(auto k : pixel_neighbors[tel_id][tmp_p])
+                {
+                    if(res[k])
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if(pe_list[tel_id][k] > tail_cuts[0])
+                        {
+                            res[k] = 1;
+                            tmp.push(k);
+                        }
+                    }
+
+               }
+            }
+            else if(pe_list[tel_id][tmp_p] > tail_cuts[0])
+           {
+                for(auto k : pixel_neighbors[tel_id][tmp_p])
+                {
+                    if(res[k])
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if(pe_list[tel_id][k] > tail_cuts[1])
+                        {
+                            res[k] = 1;
+                            tmp.push(k);
+                        }
+                    }
+
+               }
+
+           }
+       }
+       free(res);
+    }
+
+}
+
+
 /*be careful alpha not consider the camera rotation !*/
 
-void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], std::vector<int>* pixel_in_image,unsigned int ntel, unsigned int* Trig_List,
+void compute_moments(TImage_Parameter* image, TRecData* rec, double pe_list[][LACT_MAXPIXELS], std::vector<int>* pixel_in_image,unsigned int ntel, unsigned int* Trig_List,
                      float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS])
 {
     int tel_id;
@@ -68,11 +143,15 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
         {
             image->image_tel.push_back(tel_id);
         }
+        double dx,dy;
+        angles_to_offset(rec->GetAzimuth() * TMath::DegToRad(), rec->GetAltitude() * TMath::DegToRad(), rec->Tel_direction[tel_id][0] * TMath::DegToRad()
+        , rec->Tel_direction[tel_id][1] * TMath::DegToRad(), image->GetTelFocal(tel_id) , &dx, &dy);
+        image->SetTelSource(tel_id, dx, dy);
         for(int p = 0; p < pixel_in_image[tel_id].size(); p++)
         {
             int ipix = pixel_in_image[tel_id][p];
-            double x = x_pix[tel_id][ipix];
-            double y = y_pix[tel_id][ipix];
+            double x = x_pix[tel_id][ipix] - dx;
+            double y = y_pix[tel_id][ipix] - dy;
             double A = pe_list[tel_id][ipix];
             sA  += A;
             sx  += (A * x);
@@ -87,7 +166,7 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
         sxx = sxx/sA - sx * sx;
         sxy = sxy/sA - sx * sy;
         syy = syy/sA - sy * sy;
-        if (fabs(sxy) > 1e-8 * fabs(sxx) && fabs(sxy) > 1e-8 * fabs(syy) )
+        if (fabs(sxy) > 1e-3 * fabs(sxx) && fabs(sxy) > 1e-3 * fabs(syy) )
         {
             double p1 = syy - sxx, p2 = sxy*sxy;
             double q, r1, r2;
@@ -131,8 +210,8 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
         cb = cos(beta);
         sb = sin(beta);
         image->SetTelSize(tel_id, sA);
-        image->SetTelImageX(tel_id, sx) ;
-        image->SetTelImageY(tel_id, sy) ;
+        image->SetTelImageX(tel_id, sx + dx) ;
+        image->SetTelImageY(tel_id, sy + dy) ;
         sxx = sx3 = 0.;
         for(int j = 0; j < pixel_in_image[tel_id].size(); j++)
         {
@@ -158,4 +237,20 @@ void compute_moments(TImage_Parameter* image,double pe_list[][LACT_MAXPIXELS], s
     }
     
     
+}
+
+void ComputeRp(TImage_Parameter* image, TRecData* rec, double tel_pos[][3])
+{
+
+    for(int i = 0; i < image->image_tel.size(); i++)
+    {
+        int itel = image->image_tel[i];
+        image->rp[itel] = line_point_distance(rec->core_pos[0], rec->core_pos[1], 0, cos(rec->true_direction[0] * TMath::DegToRad()) * cos(rec->true_direction[1] * TMath::DegToRad()),
+                                        -sin(rec->true_direction[0] * TMath::DegToRad()) * cos(rec->true_direction[1] * TMath::DegToRad()), sin(rec->true_direction[1] * TMath::DegToRad() )
+                                        ,tel_pos[itel][0], tel_pos[itel][1], tel_pos[itel][2]);
+         
+        image->rec_rp[itel] = line_point_distance(rec->rec_core[0], rec->rec_core[1], 0, cos(rec->rec_direction[0] * TMath::DegToRad()) * cos(rec->rec_direction[1] * TMath::DegToRad()), 
+                                        -sin(rec->rec_direction[0] * TMath::DegToRad()) * cos(rec->rec_direction[1] * TMath::DegToRad()), sin(rec->rec_direction[1] * TMath::DegToRad())
+                                        , tel_pos[itel][0], tel_pos[itel][1], tel_pos[itel][2]);
+    }
 }

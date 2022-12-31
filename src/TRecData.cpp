@@ -1,5 +1,7 @@
 #include "TRecData.h"
+#include "TMath.h"
 #include "rec_tools.h"
+#include <cmath>
 
 TRecData::TRecData() 
 {
@@ -12,7 +14,9 @@ TRecData::TRecData()
     memset(Tel_position, 0, 3*LACT_MAXTEL*sizeof(double));
     std::fill(rec_core, rec_core + 2, 0.);
     std::fill(rec_direction, rec_direction + 2, 0.);
+    exist_lookup = 0;
     rec_energy = 0.;
+    MRSL = MRSW = 0.;
 }
 
 void TRecData::Reset()
@@ -21,6 +25,8 @@ void TRecData::Reset()
     std::fill(rec_core, rec_core + 2, 0.);
     std::fill(rec_direction, rec_direction + 2, 0.);
     rec_energy = 0.;
+    MRSL = MRSW = 0.;
+    weight = 0.;
 }
 
 void TRecData::GetData(LACTree* DSTTree)  
@@ -34,10 +40,19 @@ void TRecData::InitWrite()
     rec_tree->Branch("rec_direction", rec_direction, "rec_direction[2]/D");
     rec_tree->Branch("true_energy", &energy, "energy/D");
     if(exist_lookup)
+    {
+        rec_tree->Branch("exist_lookup", &exist_lookup, "exist_lookup/I");
         rec_tree->Branch("rec_energy", &rec_energy, "rec_energy/D");
+        rec_tree->Branch("MRSW", &MRSW, "MRSW/D");
+        rec_tree->Branch("MRSL", &MRSL, "MRSL/D");
+    }
     rec_tree->Branch("true_core", core_pos, "core_pos[2]/D");
     rec_tree->Branch("rec_core", rec_core, "rec_core[2]/D");
+    rec_tree->Branch("xmax", &xmax, "xmax/D");
+    rec_tree->Branch("hmax", &hmax, "hmax/D");
     rec_tree->Branch("direction_error", &direction_error, "direction_error/D");
+    rec_tree->Branch("weight", &weight, "weight/D");
+
 
 }
 
@@ -47,24 +62,53 @@ void TRecData::InitRead(TTree *t)
     rec_tree->SetBranchAddress("true_direction", true_direction);
     rec_tree->SetBranchAddress("rec_direction", rec_direction);
     rec_tree->SetBranchAddress("true_energy", &energy);
-    if(exist_lookup)
+    if(rec_tree->GetBranch("exist_lookup"))
     {
+        rec_tree->SetBranchAddress("exist_lookup", &exist_lookup);
         rec_tree->SetBranchAddress("rec_energy", &rec_energy);
+        rec_tree->SetBranchAddress("MRSW", &MRSW);
+        rec_tree->SetBranchAddress("MRSL", &MRSL);
     }
     rec_tree->SetBranchAddress("true_core", &core_pos);
     rec_tree->SetBranchAddress("rec_core", &rec_core);
+    rec_tree->SetBranchAddress("direction_error", &direction_error);
+}
+
+void TRecData::ReWeight(double * range , double * num_weight)
+{
+    if(energy < range[0])
+    {
+        weight = weight * num_weight[0];
+        return;
+    }
+    if( energy > range[2])
+    {
+        weight = weight * num_weight[3];
+        return;
+    }
+    if( energy > range[0] && energy < range[1])
+    {
+        weight = weight * num_weight[1];
+        return;
+    }
+    if( energy > range[1] && energy < range[2])
+    {
+        weight = weight * num_weight[2];
+        return;
+    }
 }
 
 void TRecData::compute_direction_error()
 {
     direction_error =  TMath::RadToDeg() *angle_between(true_direction[0] * TMath::DegToRad(), true_direction[1] * TMath::DegToRad(), rec_direction[0] * TMath::DegToRad(), rec_direction[1]*TMath::DegToRad());
+    theta2 = pow((TMath::RadToDeg() * angle_between(Tel_direction[0][0] * TMath::DegToRad(), Tel_direction[0][1] * TMath::DegToRad(), rec_direction[0] * TMath::DegToRad(), rec_direction[1] * TMath::DegToRad())), 2);
 
 }
 
 // ! Not consider the camera rotation Now  (cam_to_ref function)
 
 
-void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
+bool TRecData::RecShower(TImage_Parameter* image, TUserCuts* cut_option)
 {
     double x_ref[LACT_MAXTEL]{0}, y_ref[LACT_MAXTEL]{0}, alpha_ref[LACT_MAXTEL]{0};
     double w ; //weight we will use
@@ -79,7 +123,7 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     for(int i = 0; i < image->image_tel.size(); i++)
     {
         int itel = image->image_tel[i];
-        if(image->GetTelSize(itel) < cut_option->min_size  || image->GetTelRp(itel) > 450)
+        if(image->GetTelSize(itel) < cut_option->min_size)
 
         {
             continue;
@@ -92,7 +136,7 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     for(int i = 0; i < image->image_tel.size(); i++)
     {
         int itel = image->image_tel[i];
-        if(image->GetTelSize(itel) < cut_option->min_size  || image->GetTelRp(itel) > 450)
+        if(image->GetTelSize(itel) < cut_option->min_size  )
          
         {
             continue;
@@ -100,6 +144,10 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
         for(int j = 0; j < i; j++)
         {
             int jtel = image->image_tel[j];
+            if(image->GetTelSize(jtel) < cut_option->min_size)
+            {
+                continue;
+            }
             if( intersect_lines(x_ref[itel], y_ref[itel], alpha_ref[itel], x_ref[jtel], y_ref[jtel], alpha_ref[jtel],
                                     &xs, &ys, &angs) != 1)
             {
@@ -117,10 +165,11 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     if( fabs(sum_w) < 1e-10)
     {
         std::cerr << "Event number" << eventnumber << "of Runnumber " << runnumber << " Direction Rec Failed !" << std::endl;
-        return;
+        return  false;
     }
     sum_xs /= sum_w;
     sum_ys /= sum_w;
+    SetRecPoint(sum_xs, sum_ys);
     offset_to_angles(sum_xs, sum_ys, point_direction[0] * TMath::DegToRad(), point_direction[1] * TMath::DegToRad(), 1.0, &rec_az, &rec_alt);
     rec_az -= (2.*TMath::Pi()) * floor(rec_az / (2 * TMath::Pi()));
     SetRecDirection(rec_az * TMath::RadToDeg(), rec_alt * TMath::RadToDeg());
@@ -161,7 +210,7 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     }
     if( sum_w == 0)
     {
-        return;
+        return false;
     }
     xs = sum_xs / sum_w;
     ys = sum_ys / sum_w;
@@ -175,6 +224,7 @@ void TRecData::RecShower(TImage_Parameter* image, TCuts* cut_option)
     xc = xh - trans[2][0]*zh/trans[2][2];
     yc = yh - trans[2][1]*zh/trans[2][2];
     SetRecCore(xc, yc);
+    return true;
 
 
 }

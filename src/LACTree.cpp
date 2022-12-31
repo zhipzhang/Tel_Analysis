@@ -34,18 +34,26 @@ bool LACTree::initMctree()
     Mctree->Branch( "MCycore", &ycore, "MCycore/F" );
     Mctree->Branch( "MCze", &ze, "MCze/F" );
     Mctree->Branch( "MCaz", &az, "MCaz/F" );
+    Mctree->Branch("xmax", &xmax, "xmax/F");
+    Mctree->Branch("hmax", &hmax, "hmax/F");
+    Mctree->Branch("emax", &emax, "emax/F");
+    Mctree->Branch("cmax", &cmax, "cmax/F");
+
     
     return true;
 }
 bool LACTree::initEventTree()
 {
     EventTree = new TTree("event","event data tree");
-    EventTree->SetMaxTreeSize(1000 * Long64_t(2000000000));
+    EventTree->SetMaxTreeSize(1000 * Long64_t(200000000));
     EventTree->Branch("ntel_data", &ntel_data, "ntel_data/i") ;
     EventTree->Branch("tel_data", tel_data,"tel_data[ntel_data]/i");
     EventTree->Branch("ntel ", &ntel,"ntel/i");
     EventTree->Branch("Paz", Point_Az, "Paz[ntel]/F");
     EventTree->Branch("Pal", Point_Al, "Pal[ntel]/F");
+    EventTree->Branch("tel_az", &Tel_az, "tel_az/F");
+    EventTree->Branch("tel_al", &Tel_al, "tel_al/F");
+
     char tname[100];
     EventTree->Branch("ltrig", &LTrig,"ltrig/i");
     EventTree->Branch("ntrig", &Ntrig,"ntrig/i");
@@ -58,12 +66,17 @@ bool LACTree::initEventTree()
     EventTree->Branch( "MCycore", &ycore, "MCycore/F" );
     EventTree->Branch( "MCze", &ze, "MCze/F" );
     EventTree->Branch( "MCaz", &az, "MCaz/F" );
+    EventTree->Branch("xmax", &xmax, "xmax/F");
+    EventTree->Branch("hmax", &hmax, "hmax/F");
+    EventTree->Branch("emax", &emax, "emax/F");
+    EventTree->Branch("cmax", &cmax, "cmax/F");
     EventTree->Branch( "weight", &weight,"weight/F");
     EventTree->Branch("width", width, "width[ntrig]/F");
     EventTree->Branch("length", length, "length[ntrig]/F");
     EventTree->Branch("imgx", x_img, "imgx[ntrig]/F");
     EventTree->Branch("imgy", y_img, "imgy[ntrig]/F");
     EventTree->Branch("size", size, "size[ntrig]/F");
+    EventTree->Branch("phi", phi, "phi[ntrig]/F");
     if(fillPeLeaf)
     {
         sprintf(tname,"Pe[ntel_data][%d]/s",LACT_MAXPIXELS);
@@ -141,6 +154,10 @@ bool LACTree::initEventTree(TTree *t)
     EventTree->SetBranchAddress("ntel_data", &ntel_data);
     EventTree->SetBranchAddress("tel_data", tel_data);
     EventTree->SetBranchAddress("Write_fadc", &fadc_read_write);
+    EventTree->SetBranchAddress("weight", &weight);
+    EventTree->SetBranchAddress("tel_az", &Tel_az);
+    EventTree->SetBranchAddress("tel_al", &Tel_al);
+
     if(EventTree->GetBranch("Pe"))
     {
         EventTree->SetBranchAddress("Pe", pe_list);
@@ -155,6 +172,8 @@ bool LACTree::initEventTree(TTree *t)
         EventTree->SetBranchAddress( "MCycore", &ycore );
         EventTree->SetBranchAddress( "MCze", &ze );
         EventTree->SetBranchAddress( "MCaz", &az );
+        EventTree->SetBranchAddress("hmax", &hmax);
+        EventTree->SetBranchAddress("xmax", &xmax);
     }
 
 
