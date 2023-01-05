@@ -43,6 +43,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "straux.h"
 
 
 
@@ -68,6 +69,7 @@
 #include "TRandom2.h"
 #include "TLine.h"
 #include "rec_tools.h"
+
 #ifdef IHEP
 std::string prefix = "root://eos01.ihep.ac.cn/";
 #else
@@ -123,6 +125,9 @@ int main(int argc, char** argv)
     map<int, vector<int> > pixel_neighbors[LACT_MAXTEL];  //use map to store the pixel_neighbors
     bool exist_lookup = false;                           //set it to True will make Tree have the MRSW and MRSL branch
     bool do_shape_cut = false;
+    int num_only = 0;
+    int only_telescope[LACT_MAXTEL];
+    bool keep_known[LACT_MAXTEL]= {0};
     int n_img;
     int n_img2;
     string lookup_file = "";
@@ -216,6 +221,24 @@ int main(int argc, char** argv)
             argv += 1;
             continue;
         }
+        if(strcmp(argv[1], "--only-telescopes") ==0 || 
+            strcmp(argv[1],"--only-telescope") == 0)
+        {
+            char word[20];
+            int ipos;
+            while (getword(argv[2], &ipos, word, sizeof(word)-1, ',','\n') > 0 && num_only < LACT_MAXTEL)
+            {
+                int tel_idx = atoi(word);
+                if(tel_idx > 0)
+                {
+                    only_telescope[num_only++] = tel_idx;
+                    printf("Only Telescope %d\n" , tel_idx);
+                }
+            }
+            argc -= 2;
+            argv += 2;
+            continue;
+        }
         else
         {
             break;
@@ -224,6 +247,13 @@ int main(int argc, char** argv)
     if(clean2)
     {
         do_image_clean = false;
+    }
+    if( num_only > 0)
+    {
+        for( auto tel_id : only_telescope)
+        {
+            keep_known[tel_id] = 1;
+        }
     }
     //  Try to Open the lookupfile
     if(!lookup_file.empty() && exist_lookup)
@@ -383,7 +413,7 @@ int main(int argc, char** argv)
             else {
                 image_clean2(pe_list, pixel_neighbors, tail_cuts, pixel_in_image, DSTTree->GetNtrig(), DSTTree->GetTrig_List(), npix);
             }
-            compute_moments(image, rec, pe_list, pixel_in_image, ntrig, DSTTree->GetTrig_List(), x_pix, y_pix);
+            compute_moments(image, rec, pe_list, pixel_in_image, ntrig, DSTTree->GetTrig_List(), x_pix, y_pix, keep_known, num_only);
             image->ConvertToRad(focal_length);
              
              
@@ -466,6 +496,7 @@ int main(int argc, char** argv)
                     hists->h200[ie]->Fill(image->GetTelRp(tel_id), image->GetDist(tel_id) * TMath::RadToDeg(), rec->weight);
                     hists->h250[ie]->Fill(image->GetDist(tel_id) * TMath::RadToDeg(), fabs(phi - image->GetTelAlpha(tel_id)) * TMath::RadToDeg());
                     hists->h2250[ie]->Fill(image->GetDist(tel_id) * TMath::RadToDeg(), miss * TMath::RadToDeg());
+                    hists->h2000[ie]->Fill(image->GetTelRp(tel_id), miss * TMath::RadToDeg());
                     hists->h450[ie]->Fill(image->GetTelRp(tel_id), image->GetTelwidth(tel_id) * TMath::RadToDeg());
                     hists->h550[ie]->Fill(image->GetTelRp(tel_id), image->GetTelLength(tel_id) * TMath::RadToDeg());
                     hists->hist_max->Fill(rec->xmax, image->GetTelRp(tel_id), image->GetDist(tel_id) * TMath::RadToDeg());

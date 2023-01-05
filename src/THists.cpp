@@ -11,9 +11,10 @@ THists::THists(std::string& name)
     for(int i = 0; i < 10; i++)
     {
         h100[i] = new TH2D(Form("h%d", i+100), Form("Core position of Event Triggered >= 4tel .%f - %f TeV", a[i], a[i+1]), 300, -1500, 1500, 300, -1500, 1500);
-        h200[i] = new TProfile(Form("h%d", i+200), Form("Image Dist Versus Rp (%f - %f TeV)", a[i], a[i+1]), 50, 0, 1000, 0, 5);
+        h200[i] = new TProfile(Form("h%d", i+200), Form("Image Dist Versus Rp (%f - %f TeV)", a[i], a[i+1]), 50, 0, 1000, 0, 8);
         h250[i] = new TProfile(Form("h%d", i + 250), Form("Beta versus Dist (%f - %f TeV)", a[i],a[i+1]), 500, 0, 5,  0, 5);
-        h2250[i] = new TProfile( Form("h%d ", i+ 2250), Form("MISS Versus Dist (%f - %f TeV)", a[i], a[i + 1]),  500, 0, 5,  0, 5);
+        h2250[i] = new TProfile( Form("h%d ", i+ 2250), Form("MISS Versus Dist (%f - %f TeV)", a[i], a[i + 1]),  500, 0, 8,  0, 5);
+        h2000[i] = new TProfile( Form("h%d ", i+ 2000), Form("MISS Versus Rp (%f - %f TeV)", a[i], a[i + 1]),  50, 0, 1000,  0, 8);
         h400[i] = new TH1D(Form("h%d", i+400), Form("MRSW Distribution (%f - %f TeV)", a[i], a[i+1]), 400, -10, 10);
         h450[i] = new TProfile(Form("h%d", i+450), Form("Width Distribution Versus Rp (%f - %f TeV)", a[i], a[i+1]), 50, 0, 1000, 0, 4);
         h550[i] = new TProfile(Form("h%d", i+550), Form("Length Distribution Versus Rp (%f - %f TeV)", a[i], a[i+1]), 50, 0, 1000,  0,4);
@@ -23,7 +24,8 @@ THists::THists(std::string& name)
         h100[10] = new TH2D(Form("h%d", 10+100), Form("Core position of Event Triggered >= 4tel . >%f TeV", a[10]), 300, -1500, 1500, 300, -1500, 1500);
         h200[10] = new TProfile(Form("h%d", 10+200), Form("image Dist Versus Rp ( >%f  TeV)", a[10]), 50, 0, 1000,  0, 8);
         h250[10] = new TProfile(Form("h%d", 10 + 250), Form("Beta versus Dist ( >%fTeV)", a[10]), 500, 0, 5,  0, 5);
-        h2250[10] = new TProfile(Form("h%d", 10 + 2250), Form("MISS versus Dist ( >%fTeV)", a[10]), 500, 0, 5, 0, 5);
+        h2250[10] = new TProfile(Form("h%d", 10 + 2250), Form("MISS versus Dist ( >%fTeV)", a[10]), 500, 0, 8, 0, 5);
+        h2000[10] = new TProfile( Form("h%d ", 10+ 2000), Form("MISS Versus Rp ( >%fTeV)", a[10]),  50, 0, 1000,  0, 8);
         h450[10] = new TProfile(Form("h%d", 10+410), Form("Width Distribution Versus Rp ( >%f  TeV)", a[10]), 50, 0, 1000,  0, 4);
         h550[10] = new TProfile(Form("h%d", 10+510), Form("Length Distribution Versus Rp ( >%f  TeV)", a[10]),50, 0, 1000, 0, 4);
         h400[10] = new TH1D(Form("h%d", 10+400), Form("MRSW Distribution (> %f TeV)", a[10]), 200, -10, 10);
@@ -70,6 +72,7 @@ void THists::Write()
         h200[i]->Write();
         h250[i]->Write();
         h2250[i]->Write();
+        h2000[i]->Write();
         h400[i]->Write();
         h450[i]->Write();
         h500[i]->Write();

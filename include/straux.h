@@ -33,12 +33,10 @@
 
 /*---------------------------------------------------------------------*/
 /* PROTOTYPES */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef ANSI_C
 
 #ifndef CONST
 # define CONST const
@@ -50,7 +48,6 @@ int getword (CONST char *s, int *spos, char *word, int maxlen, char blank,
 int stricmp (CONST char *a, CONST char *b);
 
 
-#endif
 
 #ifdef __cplusplus
 }

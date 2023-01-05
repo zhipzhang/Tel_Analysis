@@ -126,7 +126,7 @@ void image_clean2(double pe_list[][LACT_MAXPIXELS], std::map<int, std::vector<in
 /*be careful alpha not consider the camera rotation !*/
 
 void compute_moments(TImage_Parameter* image, TRecData* rec, double pe_list[][LACT_MAXPIXELS], std::vector<int>* pixel_in_image,unsigned int ntel, unsigned int* Trig_List,
-                     float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS])
+                     float x_pix[][LACT_MAXPIXELS], float y_pix[][LACT_MAXPIXELS], bool* known , int num_only)
 {
     int tel_id;
     for(int i = 0; i < ntel; i++)
@@ -135,7 +135,14 @@ void compute_moments(TImage_Parameter* image, TRecData* rec, double pe_list[][LA
         double beta, cb, sb;
         double a = 0, b = 0;
         tel_id = Trig_List[i] - 1;
-        if(pixel_in_image[tel_id].size() < 3)
+        if( num_only >0 )
+        {
+            if(!known[tel_id])
+            {
+                continue;
+            }
+        }
+        if(pixel_in_image[tel_id].size() < 3 )
         {
             continue;
         }

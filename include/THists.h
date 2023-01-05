@@ -19,6 +19,7 @@ class THists
         TProfile  *h200[11]; // dist versus Rp in Different energy range
         TProfile  *h250[11];
         TProfile  *h2250[11];
+        TProfile  *h2000[11]; // MISS Versus Rp in Different energy range
         TH2D  *h301, *h302; // MRSW:MRSL all / angular < 1 deg
         TH1D  *h303, *h304; // Total distribution of MRSW, MRSL
         TH1D  *h400[11]; // MRSW distribution in energy bins;
